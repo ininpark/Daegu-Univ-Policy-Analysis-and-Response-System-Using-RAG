@@ -1,0 +1,59 @@
+from langchain_community.document_loaders import PyPDFLoader
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+import os
+import pickle
+
+# PDF 파일이 들어 있는 디렉터리 설정
+pdf_dirs = [
+    r"C:\Users\lge\3학년 2학기 도전학기\pdf로 변환한 문서\학생행정규칙",
+    r"C:\Users\lge\3학년 2학기 도전학기\pdf로 변환한 문서\학칙"
+]
+
+# 청크 크기와 오버랩 설정
+chunk_size = 1000  # 적절한 크기로 조정
+chunk_overlap = 100  # 청크 간 오버랩
+
+# 문서를 청크로 분할하는 함수 정의
+def split_docs(documents, chunk_size, chunk_overlap):
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=chunk_size,
+        chunk_overlap=chunk_overlap,
+        length_function=len
+    )
+    chunks = text_splitter.split_documents(documents)
+    return chunks
+
+pdf_texts = []
+
+# 각 디렉터리 내의 모든 PDF 파일을 처리
+for pdf_dir in pdf_dirs:
+    for file_name in os.listdir(pdf_dir):
+        if file_name.endswith('.pdf'):
+            file_path = os.path.join(pdf_dir, file_name)
+            try:
+                # PDF 파일 로드
+                loader = PyPDFLoader(file_path)
+                documents = loader.load()
+
+                # 청킹 작업 수행
+                chunks = split_docs(documents, chunk_size, chunk_overlap)
+
+                for i, chunk in enumerate(chunks):
+                    pdf_texts.append((file_name, chunk.page_content))
+                    
+                    # 중간 결과 출력 (선택 사항)
+                    print(f"Processing {file_name}, Chunk {i+1}/{len(chunks)}")
+                    print(chunk.page_content)
+                    print("-----" * 10)
+
+            except Exception as e:
+                print(f"Error processing {file_path}: {e}") 
+
+# 첫 번째 청크의 내용 출력
+if pdf_texts:
+    print("First chunk content:")
+    print(pdf_texts[0][1])
+
+# pdf_texts 저장
+with open('pdf_texts_paragraphs.pkl', 'wb') as f:
+    pickle.dump(pdf_texts, f)
